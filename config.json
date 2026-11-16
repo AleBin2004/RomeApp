@@ -1,0 +1,67 @@
+{
+  "ntfy_topic": "",
+  "base": "2026-11-11",
+  "threshold": 0.1,
+  "tickers": [
+    {
+      "t": "TTWO",
+      "name": "Take-Two Interactive",
+      "cur": "USD",
+      "seed": 231.31
+    },
+    {
+      "t": "TSLA",
+      "name": "Tesla",
+      "cur": "USD",
+      "seed": 390.84
+    },
+    {
+      "t": "NVDA",
+      "name": "Nvidia",
+      "cur": "USD",
+      "seed": 173.73
+    },
+    {
+      "t": "LUNR",
+      "name": "Intuitive Machines",
+      "cur": "USD",
+      "seed": 12.18
+    },
+    {
+      "t": "MU",
+      "name": "Micron Technology",
+      "cur": "USD",
+      "seed": 811.3
+    },
+    {
+      "t": "SNDK",
+      "name": "SanDisk",
+      "cur": "USD",
+      "seed": 977.69
+    },
+    {
+      "t": "6857.T",
+      "name": "Advantest",
+      "cur": "JPY",
+      "seed": 31440
+    },
+    {
+      "t": "NBIS",
+      "name": "Nebius Group",
+      "cur": "USD",
+      "seed": 154.69
+    },
+    {
+      "t": "NKE",
+      "name": "Nike",
+      "cur": "USD",
+      "seed": 38.32
+    },
+    {
+      "t": "CCJ",
+      "name": "Cameco",
+      "cur": "USD",
+      "seed": 74.32
+    }
+  ]
+}

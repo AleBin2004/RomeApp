@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1b24"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap">
+<title>Monitor Titoli</title>
+<style>
+:root{--bg:#eef2f4;--sf:#fff;--ink:#0f1b24;--mu:#5b6b78;--bd:#d9e0e5;--up:14,138,95;--dn:197,53,44;--ac:#1d5fd1;--nav:#0f1b24}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1218;--sf:#131d26;--ink:#e8eef2;--mu:#8fa0ad;--bd:#243340;--up:61,220,151;--dn:255,107,96;--ac:#6ea3ff}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+header{padding:calc(14px + env(safe-area-inset-top,0px)) 16px 10px;max-width:1100px;margin:0 auto}
+h1{font-size:22px;margin:0;font-weight:700}.sub{color:var(--mu);font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:0 12px}
+section{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+h2{font-size:16px;margin:0 0 10px}h3{font-size:14px;margin:14px 0 6px}
+.num{font-variant-numeric:tabular-nums}.up{color:rgb(var(--up))}.dn{color:rgb(var(--dn))}
+.alert{border:1px solid rgb(var(--dn));background:rgba(var(--dn),.12);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.ok{color:var(--mu)}
+.sc{overflow-x:auto;margin:0 -14px;padding:0 14px}
+table{border-collapse:separate;border-spacing:3px;min-width:880px;width:100%}
+th{font-size:12px;font-weight:700;text-align:right;padding:2px 4px;white-space:nowrap}
+th small{display:block;color:var(--mu);font-weight:400}
+td{text-align:right;padding:7px 8px;border-radius:6px;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.d{text-align:left;position:sticky;left:0;background:var(--sf);font-weight:500;z-index:1;padding-left:2px}
+td small{display:block;font-size:12px;font-weight:700}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--nav);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+nav.tabs button{flex:1;background:none;border:0;color:#9fb0bd;font:inherit;font-weight:500;padding:12px 4px;border-radius:8px}
+nav.tabs button.on{color:#fff;background:rgba(255,255,255,.12)}
+.row{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.chip{border:1px solid var(--bd);background:var(--sf);color:var(--ink);font:inherit;padding:7px 13px;border-radius:999px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+svg{width:100%;height:auto;touch-action:none}svg text{fill:var(--mu);font-size:11px;font-family:inherit}
+a{color:var(--ac);text-decoration:none}.nw{padding:8px 0;border-bottom:1px solid var(--bd)}.nw:last-child{border:0}
+.nw small{color:var(--mu);display:block}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 18px}
+.q{width:100%;border-collapse:collapse;min-width:0}.q td,.q th{border-bottom:1px solid var(--bd);border-radius:0;padding:6px 4px}
+button:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+</style></head><body>
+<header><h1>Monitor Titoli</h1><div class="sub" id="sub">Caricamento…</div></header>
+<main id="v"></main>
+<nav class="tabs"><button data-t="q">Quote</button><button data-t="g">Grafici</button><button data-t="n">News e bilanci</button></nav>
+<script>
+let D=null,tab="q",ct=null,cr="1A",nt=null;
+const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nf=(n,c)=>n==null?"–":n.toLocaleString("it-IT",{minimumFractionDigits:c==="JPY"?0:2,maximumFractionDigits:c==="JPY"?0:2});
+const pc=v=>(v>=0?"+":"−")+Math.abs(v*100).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+const dd=s=>s?new Date(s).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"}):"–";
+const heat=v=>`rgba(var(--${v>=0?"up":"dn"}),${(.1+Math.min(Math.abs(v)/.2,1)*.5).toFixed(2)})`;
+const big=n=>n==null?"–":Math.abs(n)>=1e9?(n/1e9).toLocaleString("it-IT",{maximumFractionDigits:2})+" mld":(n/1e6).toLocaleString("it-IT",{maximumFractionDigits:0})+" mln";
+const T=()=>D.tickers;
+function alerts(){const h=T().filter(x=>x.alert&&x.alert.hit);
+ return h.length?h.map(x=>`<div class="alert" role="alert"><b>⚠️ ${esc(x.name)}</b> in forte calo: <span class="num">${pc(x.alert.vs_base)}</span> dalla base · <span class="num">${pc(x.alert.vs_week)}</span> dal mercoledì precedente</div>`).join(""):
+ `<div class="ok">Nessun titolo con perdita oltre il ${Math.round(D.threshold*100)}%.</div>`}
+function quote(){const ts=T(),dates=[...new Set(ts.flatMap(x=>x.weekly.map(w=>w[0])))].sort().reverse(),base=D.base;
+ let h=`<section><h2>Allerte</h2>${alerts()}</section><section><h2>Quote del mercoledì</h2><div class="sc"><table><tr><th></th>${ts.map(x=>`<th>${esc(x.t)}<small>${esc(x.name)}</small></th>`).join("")}</tr>`;
+ h+=`<tr><td class="d">Ultima chiusura</td>${ts.map(x=>{const b=x.weekly[0][1],v=x.last/b-1;return `<td style="background:${heat(v)}">${nf(x.last,x.cur)}<small>${pc(v)}</small></td>`}).join("")}</tr>`;
+ for(const d of dates){h+=`<tr><td class="d">${dd(d)}${d===base?' <small class="ok">base</small>':""}</td>`+ts.map(x=>{const w=x.weekly.find(a=>a[0]===d);if(!w)return"<td>–</td>";
+  if(d===base)return `<td style="background:rgba(127,127,127,.15)">${nf(w[1],x.cur)}</td>`;const v=w[1]/x.weekly[0][1]-1;return `<td style="background:${heat(v)}">${nf(w[1],x.cur)}<small>${pc(v)}</small></td>`}).join("")+"</tr>"}
+ return h+`</table></div><div class="sub" style="margin-top:8px">Verde = sopra la prima settimana (${dd(base)}), rosso = sotto; più è scuro, più è grande la variazione. Advantest in yen.</div></section>`}
+function chart(){const x=T().find(a=>a.t===ct)||T()[0];ct=x.t;let s=(x.charts||{})[cr]||[];
+ let h=`<section><div class="row">${T().map(a=>`<button class="chip ${a.t===ct?"on":""}" data-c="${esc(a.t)}">${esc(a.t)}</button>`).join("")}</div><div class="row">${["1G","1S","1M","1A","5A","10A","2000"].map(r=>`<button class="chip ${r===cr?"on":""}" data-r="${r}">${r==="2000"?"Dal 2000":r}</button>`).join("")}</div><h2 style="margin-top:8px">${esc(x.name)} <span class="sub">${esc(x.cur)}</span></h2>`;
+ if(s.length<2)return h+`<div class="ok">Il grafico apparirà dopo il primo aggiornamento automatico.</div></section>`;
+ const W=640,H=300,P=44,t=s.map(a=>+new Date(a[0])),y=s.map(a=>a[1]),mn=Math.min(...y),mx=Math.max(...y),sp=(mx-mn)||1,t0=t[0],t1=t.at(-1)||1;
+ const X=i=>P+(t[i]-t0)/((t1-t0)||1)*(W-P-8),Y=v=>H-28-(v-mn)/sp*(H-52),v=y.at(-1)/y[0]-1,c=v>=0?"up":"dn",pts=y.map((a,i)=>X(i).toFixed(1)+","+Y(a).toFixed(1)).join(" ");
+ h+=`<div class="num"><b class="${c}" style="font-size:22px">${pc(v)}</b> <span class="sub" id="rd">${nf(y.at(-1),x.cur)} · ${dd(s.at(-1)[0])}</span></div>
+ <svg viewBox="0 0 ${W} ${H}" id="svg"><polygon points="${P},${H-28} ${pts} ${W-8},${H-28}" fill="rgba(var(--${c==="up"?"up":"dn"}),.12)"/><polyline fill="none" stroke="rgb(var(--${c==="up"?"up":"dn"}))" stroke-width="2" stroke-linejoin="round" points="${pts}"/>
+ <text x="2" y="${Y(mx)+4}">${nf(mx,x.cur)}</text><text x="2" y="${Y(mn)+4}">${nf(mn,x.cur)}</text><text x="${P}" y="${H-8}">${dd(s[0][0])}</text><text x="${W-8}" y="${H-8}" text-anchor="end">${dd(s.at(-1)[0])}</text>
+ <line id="cx" y1="8" y2="${H-28}" stroke="var(--mu)" stroke-dasharray="3 3" visibility="hidden"/></svg></section>`;
+ window.__s={s,X,W};return h}
+function bindChart(){const svg=$("#svg");if(!svg||!window.__s)return;const{s,X,W}=window.__s,cx=$("#cx");
+ const mv=e=>{const r=svg.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W;let b=0,bd=1e9;s.forEach((_,i)=>{const d=Math.abs(X(i)-px);if(d<bd){bd=d;b=i}});cx.setAttribute("x1",X(b));cx.setAttribute("x2",X(b));cx.setAttribute("visibility","visible");
+  $("#rd").textContent=nf(s[b][1],T().find(a=>a.t===ct).cur)+" · "+new Date(s[b][0]).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",...(cr==="1G"||cr==="1S"?{hour:"2-digit",minute:"2-digit"}:{})})};
+ svg.addEventListener("pointermove",mv);svg.addEventListener("pointerdown",mv)}
+function list(a){return a&&a.length?a.map(i=>`<div class="nw"><a href="${esc(i.u)}" target="_blank" rel="noopener">${esc(i.t)}</a><small>${esc(i.s||"")} ${i.d?"· "+dd(i.d):""}</small></div>`).join(""):`<div class="ok">Nessuna notizia disponibile.</div>`}
+function news(){const ts=T();nt=nt||ts[0].t;const x=ts.find(a=>a.t===nt)||ts[0];
+ const cal=ts.filter(a=>a.fin&&a.fin.next_earnings).sort((a,b)=>a.fin.next_earnings.localeCompare(b.fin.next_earnings));
+ let h=`<section><h2>Prossimi bilanci</h2>${cal.length?`<table class="q">${cal.map(a=>`<tr><td>${esc(a.name)}</td><td class="num" style="text-align:right">${dd(a.fin.next_earnings)}</td></tr>`).join("")}</table>`:`<div class="ok">Le date compariranno dopo il primo aggiornamento.</div>`}</section>`;
+ h+=`<section><div class="row">${ts.map(a=>`<button class="chip ${a.t===nt?"on":""}" data-n="${esc(a.t)}">${esc(a.name)}</button>`).join("")}</div>`;
+ const f=x.fin||{},q=f.quarters||[];
+ h+=`<h2 style="margin-top:6px">${esc(x.name)}</h2>`;
+ if(q.length)h+=`<h3>Ultimi trimestri</h3><table class="q"><tr><th style="text-align:left">Chiusura</th><th>Ricavi</th><th>Utile netto</th></tr>${q.map(r=>`<tr><td>${dd(r.d)}</td><td class="num" style="text-align:right">${big(r.rev)}</td><td class="num ${r.net<0?"dn":""}" style="text-align:right">${big(r.net)}</td></tr>`).join("")}</table>`;
+ if(f.target||f.rating)h+=`<div class="sub" style="margin-top:8px">Analisti: obiettivo medio ${nf(f.target,x.cur)} ${esc(x.cur)} · giudizio ${esc(f.rating||"–")}</div>`;
+ const n=x.news||{};
+ h+=`<div class="two"><div><h3>Bilanci e prospettive</h3>${list(n.bilanci)}</div><div><h3>Decisioni dell’azienda</h3>${list(n.decisioni)}</div></div><h3>Ultime notizie</h3>${list(n.news)}</section>`;return h}
+function render(){if(!D)return;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
+ $("#v").innerHTML=tab==="q"?quote():tab==="g"?chart():news();if(tab==="g")bindChart()}
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.t){tab=b.dataset.t;scrollTo(0,0)}if(b.dataset.c)ct=b.dataset.c;if(b.dataset.r)cr=b.dataset.r;if(b.dataset.n)nt=b.dataset.n;render()});
+fetch("data/data.json?"+Date.now()).then(r=>r.json()).then(d=>{D=d;$("#sub").textContent=d.updated?"Aggiornato il "+new Date(d.updated).toLocaleString("it-IT",{dateStyle:"medium",timeStyle:"short"}):"In attesa del primo aggiornamento automatico";render()})
+ .catch(()=>{$("#sub").textContent="Impossibile caricare i dati. Controlla la connessione."});
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
+</script></body></html>
